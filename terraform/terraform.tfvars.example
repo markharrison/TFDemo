@@ -1,0 +1,30 @@
+# Example variable values - copy to terraform.tfvars and customize
+
+project_name = "tfdemo"
+environment  = "dev"
+
+# Primary location for most resources (default: UK South)
+location = "UK South"
+
+# OpenAI location - must support GPT-4o (default: Sweden Central)
+openai_location = "Sweden Central"
+
+# Entra ID (Azure AD) administrator for SQL Server
+# This should be the Object ID of a user or group in Entra ID
+sql_admin_login     = "sqladmin"
+sql_admin_object_id = "00000000-0000-0000-0000-000000000000"
+
+# Resource tags
+tags = {
+  Environment = "Development"
+  ManagedBy   = "Terraform"
+  Project     = "TFDemo"
+}
+
+# Optional SKU overrides
+# app_service_sku = "S1"
+# sql_sku         = "Basic"
+# ai_search_sku   = "basic"
+
+# Log retention
+# log_retention_days = 30
