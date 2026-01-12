@@ -1,0 +1,79 @@
+name: Delete Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to delete (dev, staging, prod)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      confirm:
+        description: 'Type "DELETE" to confirm destruction'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_USE_OIDC: true
+  TF_VAR_sql_admin_object_id: ${{ secrets.SQL_ADMIN_OBJECT_ID }}
+
+jobs:
+  terraform:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Validate Confirmation
+        if: inputs.confirm != 'DELETE'
+        run: |
+          echo "::error::Confirmation failed. You must type 'DELETE' to confirm destruction."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy Plan
+        run: |
+          terraform plan \
+            -var="environment=${{ inputs.environment }}" \
+            -destroy \
+            -out=tfplan
+
+      - name: Terraform Destroy
+        run: terraform apply -auto-approve tfplan
+
+      - name: Destruction Summary
+        run: |
+          echo "## Destruction Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Infrastructure for environment **${{ inputs.environment }}** has been destroyed." >> $GITHUB_STEP_SUMMARY
